@@ -225,7 +225,7 @@ def imagen3_replace_background(product_image_bytes: bytes, background_image_byte
     # print("WARN: (Placeholder) imagen3_replace_background returning original product image as placeholder.")
     # return product_image_bytes
 
-def veo2_generate_video_from_image(image_bytes: bytes, image_mime_type: str, prompt: str) -> bytes | None:
+def veo2_generate_video_from_image(item_name: str, prompt: str) -> None:
     """
     Placeholder for Veo2 API call to generate video from an image and prompt.
 
@@ -237,25 +237,31 @@ def veo2_generate_video_from_image(image_bytes: bytes, image_mime_type: str, pro
     Returns:
         Bytes of the generated video, or None if failed.
     """
-    print(f"INFO: (Placeholder) Calling Veo2 (model for image-to-video generation) "
-        f"for studio images with prompt: '{prompt}'...")
+    
+   
+
 
     # --- Replace with actual Veo2 SDK call ---
     # Example (consult official Veo2/Vertex AI documentation):
     # from google.cloud import aiplatform # Or specific Veo2 SDK
    # temp_image_file_path = None 
 
-    image_input_for_sdk = {
-            "mime_type": image_mime_type,
-            "data": image_bytes  # Raw bytes are often accepted here by the SDK
-        }
-
 
     try:
     #   # Initialize client, model, etc.
-       client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
+       # client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
 
-       veo_model_name = "veo-2.0-generate-001" # THIS IS A HYPOTHETICAL NAME
+       client = genai.Client(vertexai=True, project="veo-testing", location="us-central1")
+
+       veo_model_name = "veo-2.0-generate-001" 
+
+       gcs_uri = f"gs://{GCS_BUCKET_NAME}/{item_name}"
+
+       print(f"INFO: Veo2: Processing image file at {gcs_uri} with prompt: '{prompt}'")
+
+       image_gcs = gcs_uri
+       aspect_ratio="9:16"
+       output_gcs=f"gs://{GCS_BUCKET_NAME}/{STUDIO_VIDEOS_FOLDER}"
 
     #    extension = ".bin" # Default extension
     #    if image_mime_type == "image/png":
@@ -267,49 +273,66 @@ def veo2_generate_video_from_image(image_bytes: bytes, image_mime_type: str, pro
     #         tmp_file.write(image_bytes)
     #         temp_image_file_path = tmp_file.name
     #    print(f"INFO: Input image bytes temporarily saved to: {temp_image_file_path}")
+    
+    
+
+
     #
-       response =client.models.generate_videos( # or veo_client.generate_from_image(...)
+
+
+
+       operation = client.models.generate_videos(
             model=veo_model_name,
-            image=image_input_for_sdk,
-            prompt=prompt,
-            config=types.GenerateVideosConfig(
-      
-                aspect_ratio="9:16",  
-                number_of_videos=1
+            image=types.Image(
+                gcs_uri=image_gcs,
+                mime_type="image/png",
             ),
-            
+            config=types.GenerateVideosConfig(
+                aspect_ratio=aspect_ratio,
+                output_gcs_uri=output_gcs,
+                number_of_videos=1,
+                duration_seconds=8,
+                person_generation="allow_adult",
+            ),
         )
        
-       if not response: # Or check response.videos or similar if the structure is different
+       while not operation.done:
+        time.sleep(15)
+        operation = client.operations.get(operation)
+        print(operation)
+
+
+       if not operation.response: # Or check response.videos or similar if the structure is different
             print("ERROR: Veo2 API (via genai.Client) returned an empty response.")
             return None
        
-       generated_video_object = response[0]
+       generated_video_object = operation.result.generated_videos[0]
 
-       video_byte_data = None
-       if hasattr(generated_video_object, 'video_bytes'):
-            video_byte_data = generated_video_object.video_bytes
-       elif hasattr(generated_video_object, 'media_bytes'): # Another common possibility
-            video_byte_data = generated_video_object.media_bytes
-       elif hasattr(generated_video_object, 'content'): # Generic attribute
-            video_byte_data = generated_video_object.content
-    #
-       if video_byte_data:
-            print(f"INFO: Successfully extracted {len(video_byte_data)} bytes from Veo2 response object.")
-            return video_byte_data
-       else:
-            print(f"ERROR: Could not find a suitable bytes attribute (e.g., '.video_bytes', '.media_bytes', '.content') on the response object: {type(generated_video_object)}")
-            print(f"       Attributes available: {dir(generated_video_object)}")
-            return None
+       
+
+    #    video_byte_data = None
+    #    if hasattr(generated_video_object, 'video_bytes'):
+    #         video_byte_data = generated_video_object.video_bytes
+    #    elif hasattr(generated_video_object, 'media_bytes'): # Another common possibility
+    #         video_byte_data = generated_video_object.media_bytes
+    #    elif hasattr(generated_video_object, 'content'): # Generic attribute
+    #         video_byte_data = generated_video_object.content
+    # #
+    #    if video_byte_data:
+    #         print(f"INFO: Successfully extracted {len(video_byte_data)} bytes from Veo2 response object.")
+    #         return video_byte_data
+    #    else:
+    #         print(f"ERROR: Could not find a suitable bytes attribute (e.g., '.video_bytes', '.media_bytes', '.content') on the response object: {type(generated_video_object)}")
+    #         print(f"       Attributes available: {dir(generated_video_object)}")
+    #         return None
     #
     except Exception as e:
-       print(f"ERROR: (Placeholder) Actual Veo2 API call failed: {e}")
+       print(f"ERROR: Veo2 API call failed: {e}")
        print("       Please implement this function using the correct Veo2/Vertex AI SDK.")
        return None
 
     # Fallback placeholder behavior:
-    print("WARN: (Placeholder) veo2_generate_video_from_image returning dummy video bytes as placeholder.")
-    return f"dummy_video_content_for_image_and_prompt_{prompt.replace(' ', '_')}_{time.time()}.mp4".encode('utf-8')
+    
 
 # def get_bytes_from_image_file(file_path: str) -> bytes | None:
 #     """Reads an image file and returns its content as bytes."""
@@ -441,35 +464,82 @@ def step_3_replace_background_for_products(background_image_bytes: bytes):
             print(f"INFO: Skipping non-image file: {blob.name}")
 
 
-def step_4_generate_videos_from_studio_images(user_prompt: str):
+def step_4_generate_videos_from_studio_images():
     """
     Generates videos from studio product images using Veo2 and a user prompt.
     """
     print("\n--- Step 4: Generating Videos from Studio Product Images ---")
     studio_image_blobs = list_blobs_in_folder(STUDIO_PRODUCTS_FOLDER)
+    user_prompt="Generate a short clip where the model is moving naturally to show the leggings in different angles. And get the whole body & face of the model. Move the camera to pan from different angles and create a CINEMATIC EFFECT"
 
     if not studio_image_blobs:
         print(f"INFO: No studio product images found in gs://{GCS_BUCKET_NAME}/{STUDIO_PRODUCTS_FOLDER}")
         return
 
     print(f"INFO: Found {len(studio_image_blobs)} studio product images.")
+
     for blob in studio_image_blobs:
         if blob.name.lower().endswith(('.png', '.jpg', '.jpeg')):
             print(f"INFO: Generating video for: {blob.name} with prompt: '{user_prompt}'")
             image_bytes = download_blob_to_memory(blob.name)
             image_mime_type="image/png"
-            video_bytes = veo2_generate_video_from_image(image_bytes, image_mime_type, user_prompt)
+            bucket_name=blob.bucket.name
+            item_name=blob.name
+            
+            
 
-            if video_bytes:
-                base_filename = os.path.splitext(os.path.basename(blob.name))[0] + ".mp4"
-                destination_blob_name = os.path.join(STUDIO_VIDEOS_FOLDER, base_filename)
-                # Assuming Veo2 returns MP4 bytes. Adjust content_type if needed.
-                upload_blob_from_memory(destination_blob_name, video_bytes, content_type='video/mp4')
-                print(f"INFO: Studio video stored at gs://{GCS_BUCKET_NAME}/{destination_blob_name}")
-            else:
-                print(f"ERROR: Failed to generate video for {blob.name}")
-        else:
+        temp_local_image_file_path = None # Initialize for the finally block
+        actual_gcs_blob = None
+            
+        try:
+            # # Determine a suitable suffix for the temporary file from the GCS blob name
+            #     _, file_extension = os.path.splitext(blob.name)
+            #     if not file_extension: # Default if GCS object has no extension in its name
+            #         # You could try to get blob.content_type and map it to an extension
+            #         # For simplicity, defaulting to .png if no extension found
+            #         print(f"WARN: No file extension in GCS object name {blob.name}. Defaulting to .png for temp file.")
+            #         file_extension = ".png"
+
+            # # Get the actual GCS blob object for downloading
+            # # Ensure gcs_bucket_obj is the initialized bucket from storage_client.bucket(gcs_bucket_name)
+            #     actual_gcs_blob = bucket.blob(blob.name)
+
+            # # Create a named temporary file. It's created in 'wb' mode by default if not specified.
+            # # 'delete=False' is important because we pass the name to another function;
+            # # we'll manually delete it in the 'finally' block.
+            #     with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
+            #         print(f"INFO: Downloading {blob.name} to temporary file {tmp_file.name}...")
+            #         actual_gcs_blob.download_to_filename(tmp_file.name) # Download the blob to this temp file
+            #         temp_local_image_file_path = tmp_file.name
+            #     print(f"INFO: GCS image {blob.name} successfully downloaded to: {temp_local_image_file_path}")
+
+                veo2_generate_video_from_image(item_name, user_prompt)
+
+                # if video_bytes:
+                #         base_filename = os.path.splitext(os.path.basename(blob.name))[0] + ".mp4"
+                #         destination_blob_name = os.path.join(STUDIO_VIDEOS_FOLDER, base_filename)
+                #         # Assuming Veo2 returns MP4 bytes. Adjust content_type if needed.
+                #         upload_blob_from_memory(destination_blob_name, video_bytes, content_type='video/mp4')
+                # print(f"INFO: Studio video stored at gs://{GCS_BUCKET_NAME}/{destination_blob_name}")
+                # else:
+                #         print(f"ERROR: Failed to generate video for {blob.name}")
+        
+        except Exception as e:
+            print(f"ERROR processing GCS image {list_blobs_in_folder.name} for video generation: {e}")
+        
+        finally:
+            # Clean up the temporary local file
+            if temp_local_image_file_path and os.path.exists(temp_local_image_file_path):
+                try:
+                    os.remove(temp_local_image_file_path)
+                    print(f"INFO: Cleaned up temporary local file: {temp_local_image_file_path}")
+                except Exception as e_remove:
+                    print(f"WARN: Could not remove temporary file {temp_local_image_file_path}. Error: {e_remove}")
+
+    else:
             print(f"INFO: Skipping non-image file for video generation: {blob.name}")
+        
+        
 
 
 def step_5_concatenate_videos_and_upload():
@@ -543,28 +613,27 @@ def main():
     # Step 1: Extract frame
     extracted_frame_bytes = step_1_extract_frame_from_video()
 
-    # Step 2: Generate background
+    #  Step 2: Generate background
     if extracted_frame_bytes:
-        background_bytes = step_2_generate_and_store_background(extracted_frame_bytes)
+         background_bytes = step_2_generate_and_store_background(extracted_frame_bytes)
     else:
-        print("ERROR: Halting pipeline due to failure in Step 1.")
-        return
+         print("ERROR: Halting pipeline due to failure in Step 1.")
+         return
 
     # Step 3: Replace background for products
-    if background_bytes:
-        step_3_replace_background_for_products(background_bytes)
-    else:
-        print("ERROR: Halting pipeline due to failure in Step 2.")
-        return
+    
+    step_3_replace_background_for_products(background_bytes)
+    # print("ERROR: Halting pipeline due to failure in Step 2.")
+    # return
 
     # Step 4: Generate videos from studio images
     # You might want to make this prompt dynamic (e.g., from config file or user input)
-    video_generation_prompt = input("Enter the text prompt for video generation (e.g., 'smooth panning shot'): ")
-    if not video_generation_prompt:
-        video_generation_prompt = "a gentle zoom in on the product" # Default prompt
-        print(f"INFO: No prompt entered, using default: '{video_generation_prompt}'")
+    # video_generation_prompt = input("Enter the text prompt for video generation (e.g., 'smooth panning shot'): ")
+    # if not video_generation_prompt:
+    #     video_generation_prompt = "a gentle zoom in on the product" # Default prompt
+    #     print(f"INFO: No prompt entered, using default: '{video_generation_prompt}'")
 
-    step_4_generate_videos_from_studio_images(video_generation_prompt)
+    step_4_generate_videos_from_studio_images()
 
     # Step 5: Concatenate videos and upload
     step_5_concatenate_videos_and_upload()
