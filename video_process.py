@@ -31,89 +31,89 @@ os.makedirs(TEMP_LOCAL_FILES_DIR, exist_ok=True)
 storage_client = storage.Client()
 bucket = storage_client.bucket(GCS_BUCKET_NAME)
 
-def imagen3_remove_person_and_get_background(image_bytes: bytes) -> bytes | None:
-    """
-    Placeholder for Imagen3 API call to remove any person from an image and return only the background.
-    This is an IMAGE EDITING task (likely inpainting or object removal).
+# def imagen3_remove_person_and_get_background(image_bytes: bytes) -> bytes | None:
+#     """
+#     Placeholder for Imagen3 API call to remove any person from an image and return only the background.
+#     This is an IMAGE EDITING task (likely inpainting or object removal).
 
-    Args:
-        image_bytes: Bytes of the input image.
-        project_id: Your Google Cloud Project ID.
-        location: The GCP region where your Imagen model/endpoint is.
-    Returns:
-        Bytes of the background image, or None if failed.
-    """
-    print(f"INFO: Calling Imagen3 (model for image editing/inpainting) "
-        f"to remove person/get background from image.")
+#     Args:
+#         image_bytes: Bytes of the input image.
+#         project_id: Your Google Cloud Project ID.
+#         location: The GCP region where your Imagen model/endpoint is.
+#     Returns:
+#         Bytes of the background image, or None if failed.
+#     """
+#     print(f"INFO: Calling Imagen3 (model for image editing/inpainting) "
+#         f"to remove person/get background from image.")
 
     
-    try:
-      # Initialize client, model, etc. based on official Imagen SDK for Vertex AI
-      # This might involve specifying an endpoint for an editing model.
-        client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
+#     try:
+#       # Initialize client, model, etc. based on official Imagen SDK for Vertex AI
+#       # This might involve specifying an endpoint for an editing model.
+#         client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
     
     
-        client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
+#         client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
 
-        from vertexai.preview.vision_models import (
-            Image,
-            ImageGenerationModel,
-            ControlReferenceImage,
-            StyleReferenceImage,
-            SubjectReferenceImage,
-            RawReferenceImage,
-        )
+#         from vertexai.preview.vision_models import (
+#             Image,
+#             ImageGenerationModel,
+#             ControlReferenceImage,
+#             StyleReferenceImage,
+#             SubjectReferenceImage,
+#             RawReferenceImage,
+#         )
 
-        generation_model = ImageGenerationModel.from_pretrained("imagen-3.0-capability-001")
+#         generation_model = ImageGenerationModel.from_pretrained("imagen-3.0-capability-001")
 
-        reference_images = [
-            SubjectReferenceImage(
-                reference_id=1,
-                image=image_bytes,  
-                subject_type="SUBJECT_TYPE_PERSON",
-            ),
-        ]
+#         reference_images = [
+#             SubjectReferenceImage(
+#                 reference_id=1,
+#                 image=image_bytes,  
+#                 subject_type="SUBJECT_TYPE_PERSON",
+#             ),
+#         ]
 
-        response = generation_model._generate_images(
-            prompt="Remove all people from the image [1]. Retain only the background of the studio with the camera and light stands intact.",
-            number_of_images=1,
-            negative_prompt="",
-            aspect_ratio="9:16",
-            person_generation="allow_adult",
-            safety_filter_level="block_few",
-            reference_images=reference_images,
-        )
+#         response = generation_model._generate_images(
+#             prompt="Remove all people from the image [1]. Retain only the background of the studio with the camera and light stands intact.",
+#             number_of_images=1,
+#             negative_prompt="",
+#             aspect_ratio="9:16",
+#             person_generation="allow_adult",
+#             safety_filter_level="block_few",
+#             reference_images=reference_images,
+#         )
 
-        if not response: # Or check response.images or similar if the structure is different
-            print("ERROR: Imagen3 API returned an empty response.")
-            return None
+#         if not response: # Or check response.images or similar if the structure is different
+#             print("ERROR: Imagen3 API returned an empty response.")
+#             return None
         
-        generated_image_object = response[0]
+#         generated_image_object = response[0]
 
         
-        # If this fails, try '._image_bytes' or consult the specific documentation for the type of 'generated_image_object'.
-        if hasattr(generated_image_object, 'image_bytes'):
-            processed_background_bytes = generated_image_object.image_bytes
-            print(f"INFO: Successfully extracted {len(processed_background_bytes)} bytes from Imagen3 response object.")
-            return processed_background_bytes
-        elif hasattr(generated_image_object, '_image_bytes'): # Fallback for some SDK versions/objects
-            processed_background_bytes = generated_image_object._image_bytes
-            print(f"INFO: Successfully extracted {len(processed_background_bytes)} bytes using ._image_bytes from Imagen3 response object.")
-            return processed_background_bytes
-        else:
-            print(f"ERROR: Could not find a '.image_bytes' or '._image_bytes' attribute on the response object: {type(generated_image_object)}")
-            print(f"       Attributes available: {dir(generated_image_object)}")
-            return None
+#         # If this fails, try '._image_bytes' or consult the specific documentation for the type of 'generated_image_object'.
+#         if hasattr(generated_image_object, 'image_bytes'):
+#             processed_background_bytes = generated_image_object.image_bytes
+#             print(f"INFO: Successfully extracted {len(processed_background_bytes)} bytes from Imagen3 response object.")
+#             return processed_background_bytes
+#         elif hasattr(generated_image_object, '_image_bytes'): # Fallback for some SDK versions/objects
+#             processed_background_bytes = generated_image_object._image_bytes
+#             print(f"INFO: Successfully extracted {len(processed_background_bytes)} bytes using ._image_bytes from Imagen3 response object.")
+#             return processed_background_bytes
+#         else:
+#             print(f"ERROR: Could not find a '.image_bytes' or '._image_bytes' attribute on the response object: {type(generated_image_object)}")
+#             print(f"       Attributes available: {dir(generated_image_object)}")
+#             return None
     
     
-    except Exception as e:
-      print(f"ERROR: Actual Imagen3 API call for person removal failed: {e}")
-      print("       Please implement this function using the correct Imagen SDK and model for IMAGE EDITING/INPAINTING.")
-      return None
+#     except Exception as e:
+#       print(f"ERROR: Actual Imagen3 API call for person removal failed: {e}")
+#       print("       Please implement this function using the correct Imagen SDK and model for IMAGE EDITING/INPAINTING.")
+#       return None
 
 
-    print("WARN: (Placeholder) imagen3_remove_person_and_get_background returning original image as placeholder.")
-    return image_bytes
+#     print("WARN: (Placeholder) imagen3_remove_person_and_get_background returning original image as placeholder.")
+#     return image_bytes
 
 def imagen3_replace_background(product_image_bytes: bytes, background_image_bytes: bytes) -> bytes | None:
     """
@@ -131,7 +131,6 @@ def imagen3_replace_background(product_image_bytes: bytes, background_image_byte
     print(f"INFO: Calling Imagen3 (model for image editing/compositing) "
         f"to replace background for images.")
 
-    
     try:
         client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
 
@@ -294,61 +293,86 @@ def list_blobs_in_folder(folder_prefix: str):
     return [blob for blob in blobs if not blob.name.endswith('/')] # Exclude folder itself
 
 
+def parse_gcs_uri(gcs_uri: str) -> tuple[str | None, str | None]:
+    """Parses a GCS URI into bucket name and blob name."""
+    if not gcs_uri.startswith("gs://"):
+        print(f"ERROR: Invalid GCS URI format: {gcs_uri}. Must start with 'gs://'.")
+        return None, None
+    parts = gcs_uri[5:].split("/", 1)
+    if len(parts) < 2:
+        print(f"ERROR: Invalid GCS URI format: {gcs_uri}. Must contain bucket and blob name.")
+        return None, None
+    bucket_name = parts[0]
+    blob_name = parts[1]
+    return bucket_name, blob_name
+
 # --- Main Program Steps ---
 
-def step_1_extract_frame_from_video():
-    """
-    Takes a video from GCS, extracts a frame, and returns its bytes.
-    """
-    print("\n--- Step 1: Extracting Frame from Video ---")
-    local_video_path = "temp_video.mp4"
-    download_blob_to_file(VIDEO_SOURCE_PATH, local_video_path)
+# def step_1_extract_frame_from_video():
+#     """
+#     Takes a video from GCS, extracts a frame, and returns its bytes.
+#     """
+#     print("\n--- Step 1: Extracting Frame from Video ---")
+#     local_video_path = "temp_video.mp4"
+#     download_blob_to_file(VIDEO_SOURCE_PATH, local_video_path)
 
-    vidcap = cv2.VideoCapture(local_video_path)
-    fps = vidcap.get(cv2.CAP_PROP_FPS)
-    frame_number = int(fps * FRAME_EXTRACTION_TIME_SECONDS)
-    vidcap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-    success, image_cv2 = vidcap.read()
+#     vidcap = cv2.VideoCapture(local_video_path)
+#     fps = vidcap.get(cv2.CAP_PROP_FPS)
+#     frame_number = int(fps * FRAME_EXTRACTION_TIME_SECONDS)
+#     vidcap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+#     success, image_cv2 = vidcap.read()
 
-    if success:
-        print(f"INFO: Successfully extracted frame {frame_number} from {VIDEO_SOURCE_PATH}")
-        _, image_bytes = cv2.imencode('.jpg', image_cv2)
-        os.remove(local_video_path) # Clean up local file
-        return image_bytes.tobytes()
-    else:
-        print(f"ERROR: Could not extract frame from {VIDEO_SOURCE_PATH} at {FRAME_EXTRACTION_TIME_SECONDS}s.")
-        os.remove(local_video_path)
-        return None
+#     if success:
+#         print(f"INFO: Successfully extracted frame {frame_number} from {VIDEO_SOURCE_PATH}")
+#         _, image_bytes = cv2.imencode('.jpg', image_cv2)
+#         os.remove(local_video_path) # Clean up local file
+#         return image_bytes.tobytes()
+#     else:
+#         print(f"ERROR: Could not extract frame from {VIDEO_SOURCE_PATH} at {FRAME_EXTRACTION_TIME_SECONDS}s.")
+#         os.remove(local_video_path)
+#         return None
 
-def step_2_generate_and_store_background(frame_bytes: bytes):
-    """
-    Uses Imagen3 to remove person from the frame and stores it as background.
-    """
-    print("\n--- Step 2: Generating and Storing Background Image ---")
-    if not frame_bytes:
-        print("ERROR: No frame image provided to generate background.")
-        return None
+# def step_2_generate_and_store_background(frame_bytes: bytes):
+#     """
+#     Uses Imagen3 to remove person from the frame and stores it as background.
+#     """
+#     print("\n--- Step 2: Generating and Storing Background Image ---")
+#     if not frame_bytes:
+#         print("ERROR: No frame image provided to generate background.")
+#         return None
 
-    background_image_bytes = imagen3_remove_person_and_get_background(frame_bytes)
+#     background_image_bytes = imagen3_remove_person_and_get_background(frame_bytes)
 
-    if background_image_bytes:
-        destination_blob_name = os.path.join(BACKGROUND_IMAGE_FOLDER, BACKGROUND_IMAGE_NAME)
-        upload_blob_from_memory(destination_blob_name, background_image_bytes, content_type='image/jpeg')
-        print(f"INFO: Background image stored at gs://{GCS_BUCKET_NAME}/{destination_blob_name}")
-        return background_image_bytes
-    else:
-        print("ERROR: Failed to generate background image using Imagen3.")
-        return None
+#     if background_image_bytes:
+#         destination_blob_name = os.path.join(BACKGROUND_IMAGE_FOLDER, BACKGROUND_IMAGE_NAME)
+#         upload_blob_from_memory(destination_blob_name, background_image_bytes, content_type='image/jpeg')
+#         print(f"INFO: Background image stored at gs://{GCS_BUCKET_NAME}/{destination_blob_name}")
+#         return background_image_bytes
+#     else:
+#         print("ERROR: Failed to generate background image using Imagen3.")
+        # return None
 
-def step_3_replace_background_for_products(background_image_bytes: bytes):
+def step_3_replace_background_for_products( gcs_background_image_uri: str, gcs_storage_client: storage.Client):
     """
     Replaces background for product images using the generated background.
     """
     print("\n--- Step 3: Replacing Background for Product Images ---")
-    if not background_image_bytes:
-        print("ERROR: No background image provided for product background replacement.")
+    
+    background_bucket_name, background_blob_name = parse_gcs_uri(gcs_background_image_uri)
+    if not background_bucket_name or not background_blob_name:
+        print(f"ERROR: Invalid GCS URI for background image: {gcs_background_image_uri}")
         return
 
+    background_bucket = gcs_storage_client.bucket(background_bucket_name)
+    background_blob = background_bucket.blob(background_blob_name)
+
+    if not background_blob.exists():
+        print(f"ERROR: Background image not found at GCS URI: {gcs_background_image_uri}")
+        return
+
+    background_image_bytes = background_blob.download_as_bytes()
+    print(f"INFO: Background image downloaded from GCS: {gcs_background_image_uri} ({len(background_image_bytes)} bytes)")
+    
     product_image_blobs = list_blobs_in_folder(PRODUCT_IMAGES_FOLDER)
     if not product_image_blobs:
         print(f"INFO: No product images found in gs://{GCS_BUCKET_NAME}/{PRODUCT_IMAGES_FOLDER}")
@@ -473,20 +497,13 @@ def main():
     """
     print("Starting Product Video Generation Pipeline...")
 
-    # Step 1: Extract frame
-    extracted_frame_bytes = step_1_extract_frame_from_video()
 
-    #  Step 2: Generate background
-    if extracted_frame_bytes:
-         background_bytes = step_2_generate_and_store_background(extracted_frame_bytes)
-    else:
-         print("ERROR: Halting pipeline due to failure in Step 1.")
-         return
+    gcs_background_image_uri = "gs://veo_exps/background_output/background.jpg" # Replace with your actual URI
+    print(f"INFO: Using existing background image from GCS: {gcs_background_image_uri}")
 
     # Step 3: Replace background for products
     
-    step_3_replace_background_for_products(background_bytes)
-
+    step_3_replace_background_for_products(gcs_background_image_uri, storage_client)
 
     # print("ERROR: Halting pipeline due to failure in Step 2.")
     # return
