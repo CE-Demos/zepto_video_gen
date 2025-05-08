@@ -43,27 +43,15 @@ def imagen3_remove_person_and_get_background(image_bytes: bytes) -> bytes | None
     Returns:
         Bytes of the background image, or None if failed.
     """
-    print(f"INFO: (Placeholder) Calling Imagen3 (model for image editing/inpainting) "
+    print(f"INFO: Calling Imagen3 (model for image editing/inpainting) "
         f"to remove person/get background from image.")
 
-    
-    #from google.cloud import aiplatform # Or the specific Imagen SDK if different
-    # from vertexai.preview.generative_models import GenerativeModel, Part # Example for Gemini, Imagen might differ
     
     try:
       # Initialize client, model, etc. based on official Imagen SDK for Vertex AI
       # This might involve specifying an endpoint for an editing model.
         client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
     
-      # The model name or endpoint ID for Imagen3 image editing/inpainting
-      # This is NOT the same as text-to-image generation model.
-       # imagen_editing_model_name = "imagen-3.0-capability-001" # THIS IS A HYPOTHETICAL NAME
-    
-      # Construct the request for Imagen3.
-      # This will depend on the specific API for inpainting or object removal.
-      # It will likely take the image_bytes and a prompt or instruction.
-      # For example:
-        # edit_prompt = "Remove all people from the image. Retain only the background. Fill in the removed areas naturally."
     
         client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
 
@@ -81,9 +69,9 @@ def imagen3_remove_person_and_get_background(image_bytes: bytes) -> bytes | None
         reference_images = [
             SubjectReferenceImage(
                 reference_id=1,
-                image=image_bytes,  # Added comma here
+                image=image_bytes,  
                 subject_type="SUBJECT_TYPE_PERSON",
-            ),  # This comma separates the two SubjectReferenceImage objects in the list
+            ),
         ]
 
         response = generation_model._generate_images(
@@ -117,13 +105,9 @@ def imagen3_remove_person_and_get_background(image_bytes: bytes) -> bytes | None
             print(f"       Attributes available: {dir(generated_image_object)}")
             return None
     
-    #     print("INFO: (Placeholder) Successfully called hypothetical Imagen3 edit API.")
-    #   # For testing the pipeline flow, return the original image:
-    #     # background_image_bytes = image_bytes
-    #     return background_image_bytes
     
     except Exception as e:
-      print(f"ERROR: (Placeholder) Actual Imagen3 API call for person removal failed: {e}")
+      print(f"ERROR: Actual Imagen3 API call for person removal failed: {e}")
       print("       Please implement this function using the correct Imagen SDK and model for IMAGE EDITING/INPAINTING.")
       return None
 
@@ -144,14 +128,10 @@ def imagen3_replace_background(product_image_bytes: bytes, background_image_byte
     Returns:
         Bytes of the product image with the new background, or None if failed.
     """
-    print(f"INFO: (Placeholder) Calling Imagen3 (model for image editing/compositing) "
+    print(f"INFO: Calling Imagen3 (model for image editing/compositing) "
         f"to replace background for images.")
 
-    # --- Replace with actual Imagen3 SDK call for background replacement ---
-    # This will require an Imagen3 model/API capable of image compositing or
-    # background replacement, taking a foreground image and a background image.
-    #
-    # from google.cloud import aiplatform # Or the specific Imagen SDK
+    
     try:
         client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
 
@@ -169,15 +149,15 @@ def imagen3_replace_background(product_image_bytes: bytes, background_image_byte
         reference_images = [
             SubjectReferenceImage(
                 reference_id=1,
-                image=product_image_bytes,  # Added comma here
+                image=product_image_bytes,  
                 subject_type="SUBJECT_TYPE_PERSON",
-            ),  # This comma separates the two SubjectReferenceImage objects in the list
+            ),  
             SubjectReferenceImage(
                 reference_id=2,
-                image=background_image_bytes,  # Added comma here
-                subject_description="",        # Added comma here
+                image=background_image_bytes,  
+                subject_description="",        
                 subject_type="SUBJECT_TYPE_DEFAULT",
-            ),  # This trailing comma for the list itself is optional but good practice
+            ),  
         ]
 
         response = generation_model._generate_images(
@@ -190,7 +170,7 @@ def imagen3_replace_background(product_image_bytes: bytes, background_image_byte
             reference_images=reference_images,
         )
 
-        if not response: # Or check response.images or similar if the structure is different
+        if not response: # 
             print("ERROR: Imagen3 API returned an empty response.")
             return None
         
@@ -209,21 +189,10 @@ def imagen3_replace_background(product_image_bytes: bytes, background_image_byte
             print(f"       Attributes available: {dir(generated_image_object)}")
             return None
 
-        # Adjust based on actual response
-    #
-    #     print("INFO: (Placeholder) Successfully called hypothetical Imagen3 background replacement API.")
-    # # For testing the pipeline flow, return the original product image:
-    #     # studio_product_bytes = product_image_bytes
-    #     return studio_product_bytes
-    # #
     except Exception as e:
         print(f"ERROR: (Placeholder) Actual Imagen3 API call for background replacement failed: {e}")
         print("       Please implement this function using the correct Imagen SDK and model for IMAGE EDITING/COMPOSITING.")
         return None
-
-    # Fallback placeholder behavior:
-    # print("WARN: (Placeholder) imagen3_replace_background returning original product image as placeholder.")
-    # return product_image_bytes
 
 def veo2_generate_video_from_image(item_name: str, prompt: str) -> None:
     """
@@ -237,18 +206,9 @@ def veo2_generate_video_from_image(item_name: str, prompt: str) -> None:
     Returns:
         Bytes of the generated video, or None if failed.
     """
-    
-   
-
-
-    # --- Replace with actual Veo2 SDK call ---
-    # Example (consult official Veo2/Vertex AI documentation):
-    # from google.cloud import aiplatform # Or specific Veo2 SDK
-   # temp_image_file_path = None 
-
 
     try:
-    #   # Initialize client, model, etc.
+    #   # Initialize client, model, etc. The project and location args are mutually exclusive to api_key arg.
        # client = genai.Client(api_key='AIzaSyCwtqZvVOiEx86-ZY1Xssn1sw6sikVLia0')
 
        client = genai.Client(vertexai=True, project="veo-testing", location="us-central1")
@@ -262,24 +222,6 @@ def veo2_generate_video_from_image(item_name: str, prompt: str) -> None:
        image_gcs = gcs_uri
        aspect_ratio="9:16"
        output_gcs=f"gs://{GCS_BUCKET_NAME}/{STUDIO_VIDEOS_FOLDER}"
-
-    #    extension = ".bin" # Default extension
-    #    if image_mime_type == "image/png":
-    #         extension = ".png"
-    #    elif image_mime_type in ["image/jpeg", "image/jpg"]:
-    #         extension = ".jpg"
-
-    #    with tempfile.NamedTemporaryFile(delete=False, suffix=extension, mode='wb') as tmp_file:
-    #         tmp_file.write(image_bytes)
-    #         temp_image_file_path = tmp_file.name
-    #    print(f"INFO: Input image bytes temporarily saved to: {temp_image_file_path}")
-    
-    
-
-
-    #
-
-
 
        operation = client.models.generate_videos(
             model=veo_model_name,
@@ -306,47 +248,13 @@ def veo2_generate_video_from_image(item_name: str, prompt: str) -> None:
             print("ERROR: Veo2 API (via genai.Client) returned an empty response.")
             return None
        
-       generated_video_object = operation.result.generated_videos[0]
 
        
-
-    #    video_byte_data = None
-    #    if hasattr(generated_video_object, 'video_bytes'):
-    #         video_byte_data = generated_video_object.video_bytes
-    #    elif hasattr(generated_video_object, 'media_bytes'): # Another common possibility
-    #         video_byte_data = generated_video_object.media_bytes
-    #    elif hasattr(generated_video_object, 'content'): # Generic attribute
-    #         video_byte_data = generated_video_object.content
-    # #
-    #    if video_byte_data:
-    #         print(f"INFO: Successfully extracted {len(video_byte_data)} bytes from Veo2 response object.")
-    #         return video_byte_data
-    #    else:
-    #         print(f"ERROR: Could not find a suitable bytes attribute (e.g., '.video_bytes', '.media_bytes', '.content') on the response object: {type(generated_video_object)}")
-    #         print(f"       Attributes available: {dir(generated_video_object)}")
-    #         return None
-    #
     except Exception as e:
        print(f"ERROR: Veo2 API call failed: {e}")
        print("       Please implement this function using the correct Veo2/Vertex AI SDK.")
        return None
 
-    # Fallback placeholder behavior:
-    
-
-# def get_bytes_from_image_file(file_path: str) -> bytes | None:
-#     """Reads an image file and returns its content as bytes."""
-#     try:
-#         with open(file_path, "rb") as image_file:  # "rb" means read in binary mode
-#             image_bytes = image_file.read()
-#         print(f"Successfully read {len(image_bytes)} bytes from {file_path}")
-#         return image_bytes
-#     except FileNotFoundError:
-#         print(f"Error: The file '{file_path}' was not found.")
-#         return None
-#     except Exception as e:
-#         print(f"Error reading file '{file_path}': {e}")
-#         return None
 
 # --- Helper Functions for GCS ---
 
@@ -486,61 +394,16 @@ def step_4_generate_videos_from_studio_images():
             bucket_name=blob.bucket.name
             item_name=blob.name
             
-            
-
-        temp_local_image_file_path = None # Initialize for the finally block
-        actual_gcs_blob = None
-            
         try:
-            # # Determine a suitable suffix for the temporary file from the GCS blob name
-            #     _, file_extension = os.path.splitext(blob.name)
-            #     if not file_extension: # Default if GCS object has no extension in its name
-            #         # You could try to get blob.content_type and map it to an extension
-            #         # For simplicity, defaulting to .png if no extension found
-            #         print(f"WARN: No file extension in GCS object name {blob.name}. Defaulting to .png for temp file.")
-            #         file_extension = ".png"
-
-            # # Get the actual GCS blob object for downloading
-            # # Ensure gcs_bucket_obj is the initialized bucket from storage_client.bucket(gcs_bucket_name)
-            #     actual_gcs_blob = bucket.blob(blob.name)
-
-            # # Create a named temporary file. It's created in 'wb' mode by default if not specified.
-            # # 'delete=False' is important because we pass the name to another function;
-            # # we'll manually delete it in the 'finally' block.
-            #     with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
-            #         print(f"INFO: Downloading {blob.name} to temporary file {tmp_file.name}...")
-            #         actual_gcs_blob.download_to_filename(tmp_file.name) # Download the blob to this temp file
-            #         temp_local_image_file_path = tmp_file.name
-            #     print(f"INFO: GCS image {blob.name} successfully downloaded to: {temp_local_image_file_path}")
-
-                veo2_generate_video_from_image(item_name, user_prompt)
-
-                # if video_bytes:
-                #         base_filename = os.path.splitext(os.path.basename(blob.name))[0] + ".mp4"
-                #         destination_blob_name = os.path.join(STUDIO_VIDEOS_FOLDER, base_filename)
-                #         # Assuming Veo2 returns MP4 bytes. Adjust content_type if needed.
-                #         upload_blob_from_memory(destination_blob_name, video_bytes, content_type='video/mp4')
-                # print(f"INFO: Studio video stored at gs://{GCS_BUCKET_NAME}/{destination_blob_name}")
-                # else:
-                #         print(f"ERROR: Failed to generate video for {blob.name}")
+            
+            veo2_generate_video_from_image(item_name, user_prompt)
         
         except Exception as e:
             print(f"ERROR processing GCS image {list_blobs_in_folder.name} for video generation: {e}")
-        
-        finally:
-            # Clean up the temporary local file
-            if temp_local_image_file_path and os.path.exists(temp_local_image_file_path):
-                try:
-                    os.remove(temp_local_image_file_path)
-                    print(f"INFO: Cleaned up temporary local file: {temp_local_image_file_path}")
-                except Exception as e_remove:
-                    print(f"WARN: Could not remove temporary file {temp_local_image_file_path}. Error: {e_remove}")
 
     else:
             print(f"INFO: Skipping non-image file for video generation: {blob.name}")
         
-        
-
 
 def step_5_concatenate_videos_and_upload():
     """
@@ -623,15 +486,10 @@ def main():
     # Step 3: Replace background for products
     
     step_3_replace_background_for_products(background_bytes)
+
+
     # print("ERROR: Halting pipeline due to failure in Step 2.")
     # return
-
-    # Step 4: Generate videos from studio images
-    # You might want to make this prompt dynamic (e.g., from config file or user input)
-    # video_generation_prompt = input("Enter the text prompt for video generation (e.g., 'smooth panning shot'): ")
-    # if not video_generation_prompt:
-    #     video_generation_prompt = "a gentle zoom in on the product" # Default prompt
-    #     print(f"INFO: No prompt entered, using default: '{video_generation_prompt}'")
 
     step_4_generate_videos_from_studio_images()
 
