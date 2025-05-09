@@ -7,6 +7,7 @@ from google.genai import types
 from PIL import Image
 from io import BytesIO
 import time
+import datetime
 import os # Make sure os is imported for file operations
 from vertexai.generative_models import GenerativeModel, Image
 import tempfile
@@ -439,56 +440,116 @@ def step_5_concatenate_videos_and_upload():
     if not video_blobs:
         print(f"INFO: No videos found in gs://{GCS_BUCKET_NAME}/{STUDIO_VIDEOS_FOLDER} to concatenate.")
         return
+    
+    # Create a unique temporary directory for this concatenation process
+    # This ensures unique temporary file names and isolated cleanup
+
+    temp_dir_suffix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    temp_dir = os.path.join(tempfile.gettempdir(), f"moviepy_concat_{temp_dir_suffix}")
+    os.makedirs(temp_dir, exist_ok=True)
+    print(f"INFO: Created temporary directory for video processing: {temp_dir}")
 
     local_video_files = []
     temp_dir = "temp_videos_for_concat"
     os.makedirs(temp_dir, exist_ok=True)
 
     print(f"INFO: Downloading {len(video_blobs)} videos for concatenation...")
+    downloaded_video_paths = []
     for i, blob in enumerate(video_blobs):
         if blob.name.lower().endswith('.mp4'): # Assuming MP4 format from Veo2
             local_file_path = os.path.join(temp_dir, f"video_{i}_{os.path.basename(blob.name)}")
-            download_blob_to_file(blob.name, local_file_path)
-            local_video_files.append(local_file_path)
+            try:
+                # Ensure 'bucket' object is accessible (from your GCS initialization)
+                actual_blob = bucket.blob(blob.name)
+                actual_blob.download_to_filename(local_file_path)
+                downloaded_video_paths.append(local_file_path)
+                print(f"INFO: Downloaded {blob.name} to {local_file_path}")
+            except Exception as e:
+                print(f"WARN: Failed to download {blob.name} for concatenation. Skipping. Error: {e}")
         else:
             print(f"INFO: Skipping non-mp4 file: {blob.name}")
 
 
-    if not local_video_files:
-        print("INFO: No valid video files downloaded for concatenation.")
-        if os.path.exists(temp_dir):
-            for f in os.listdir(temp_dir): os.remove(os.path.join(temp_dir, f))
-            os.rmdir(temp_dir)
+    if not downloaded_video_paths:
+        print("INFO: No valid video files downloaded for concatenation. Nothing to upload.")
+        # Clean up the temporary directory if it's empty and created here.
+        if os.path.exists(temp_dir) and not os.listdir(temp_dir):
+            try: os.rmdir(temp_dir)
+            except Exception as e: print(f"WARN: Could not remove empty temp dir {temp_dir}: {e}")
         return
+    
+    video_clips = []
+    final_video_local_path = None 
 
     try:
         print("INFO: Concatenating videos using MoviePy...")
-        video_clips = [VideoFileClip(file_path) for file_path in local_video_files]
+        for file_path in downloaded_video_paths:
+            try:
+                clip = VideoFileClip(file_path)
+                video_clips.append(clip)
+            except Exception as e:
+                print(f"WARN: Could not load video clip {file_path} with MoviePy. Skipping. Error: {e}")
+
+        if not video_clips:
+            print("ERROR: No video clips could be loaded by MoviePy for concatenation. Nothing to upload.")
+            return
+
         final_clip = concatenate_videoclips(video_clips, method="compose")
-        final_video_local_path = os.path.join(temp_dir, FINAL_VIDEO_NAME)
-        final_clip.write_videofile(final_video_local_path, codec="libx264", audio_codec="aac") # Or other suitable codecs
 
-        print(f"INFO: Concatenation complete. Final video at {final_video_local_path}")
+        # --- THIS IS THE KEY CHANGE TO PREVENT OVERWRITING ---
+        # Generate a unique filename for the concatenated video using a timestamp
+        timestamp_for_filename = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f") # Includes microseconds for uniqueness
+        unique_final_video_name = f"final_product_showcase_{timestamp_for_filename}.mp4"
 
-        final_video_gcs_path = os.path.join(FINAL_VIDEOS_FOLDER, FINAL_VIDEO_NAME)
+        # Use this unique name for the local temporary file as well
+        final_video_local_path = os.path.join(temp_dir, unique_final_video_name) 
+        final_clip.write_videofile(final_video_local_path, codec="libx264", audio_codec="aac", logger='bar')
+
+        print(f"INFO: Concatenation complete. Final video saved locally at {final_video_local_path}")
+
+        # Construct the GCS destination path with the unique filename
+        # Ensure FINAL_VIDEOS_FOLDER has a trailing slash or handle consistently
+        folder_path_on_gcs = FINAL_VIDEOS_FOLDER if FINAL_VIDEOS_FOLDER.endswith('/') else FINAL_VIDEOS_FOLDER + '/'
+        final_video_gcs_path = os.path.join(folder_path_on_gcs, unique_final_video_name) 
+        
+        # Assuming upload_blob_from_file is defined and works using your 'bucket' object
         upload_blob_from_file(final_video_local_path, final_video_gcs_path)
         print(f"INFO: Final video uploaded to gs://{GCS_BUCKET_NAME}/{final_video_gcs_path}")
 
     except Exception as e:
         print(f"ERROR: An error occurred during video concatenation or upload: {e}")
+        # import traceback
+        # traceback.print_exc() # Uncomment for detailed debugging traceback
     finally:
-        # Clean up local temporary files and directory
         print("INFO: Cleaning up temporary local files...")
+        # Ensure all MoviePy clips are closed to release file handles
         for clip in video_clips:
-            clip.close() # Important to close clips
-        for file_path in local_video_files:
+            try: clip.close()
+            except Exception: pass
+        
+        # Delete all downloaded temporary video files
+        for file_path in downloaded_video_paths:
             if os.path.exists(file_path):
-                os.remove(file_path)
-        if os.path.exists(final_video_local_path) and os.path.isfile(final_video_local_path):
-             os.remove(final_video_local_path)
+                try: os.remove(file_path)
+                except Exception as e_rem: print(f"WARN: Failed to remove downloaded temp file {file_path}: {e_rem}")
+        
+        # Delete the final concatenated local video file
+        if final_video_local_path and os.path.exists(final_video_local_path):
+            try: os.remove(final_video_local_path)
+            except Exception as e_rem: print(f"WARN: Failed to remove final local temp file {final_video_local_path}: {e_rem}")
+
+        # Attempt to remove the temporary directory, but only if it's empty
         if os.path.exists(temp_dir):
-            os.rmdir(temp_dir)
+            try:
+                if not os.listdir(temp_dir): # Check if directory is empty
+                    os.rmdir(temp_dir)
+                    print(f"INFO: Removed empty temporary directory: {temp_dir}")
+                else:
+                    print(f"WARN: Temporary directory {temp_dir} not empty. Files remaining: {os.listdir(temp_dir)}")
+            except OSError as e:
+                print(f"WARN: Could not remove temporary directory {temp_dir}. Error: {e}")
         print("INFO: Cleanup complete.")
+
 
 
 def main():
